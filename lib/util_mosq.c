@@ -76,6 +76,21 @@ void hilight_enqueue(Queue *queue, element data)
 	queue->count++;//보관 개수를 1 증가
 }
 
+element hilight_peek(Queue *queue) {
+	element re;
+	Node *now;
+
+	re.qos = 4;
+
+	if (hilight_is_empty(queue))//큐가 비었을 때
+	{
+		printf("\nEmpty Highligh Queue\n");
+		return re;
+	}
+
+	return queue->front->data;
+}
+
 element hilight_dequeue(Queue *queue)
 {
 	element re;
@@ -96,6 +111,12 @@ element hilight_dequeue(Queue *queue)
 	queue->count--;//보관 개수를 1 감소
 
 	return re;
+}
+
+void hilight_queue_init() {
+	hilight_init_queue(&hilight_urgency_queue);
+	hilight_init_queue(&hilight_normal_queue);
+	hilight_init_queue(&hilight_send_queue);
 }
 
 //sub list
@@ -159,6 +180,45 @@ struct moquitto *hilight_before_find(struct mosquitto *head, struct mosquitto va
 	}
 	return p_before;
 }
+
+
+/*
+생산자 코드
+*/
+void producer_enqueue() { //생산자
+	int i;
+	element data;
+
+	if (hilight_urgency_queue.count != 0) {
+		printf("My Urgency Queue 갯 수 : %d\n", hilight_urgency_queue.count);
+	}
+	for (i = 0; i < hilight_urgency_queue.count; i++) {
+		printf("---------------- urgency enqueue 시작 ----------------\n");
+		if (!hilight_is_empty(&hilight_urgency_queue)) {
+			data = hilight_dequeue(&hilight_urgency_queue);
+			//여기서 enqueue 할 시 앞에다가 넣어줘야 함!
+			hilight_enqueue(&hilight_send_queue, data);
+		}
+		printf("\n---------------- urgency dequeue 끝 ----------------\n");
+	}
+
+	if (hilight_normal_queue.count != 0) {
+		printf("My Normal Queue 갯 수 : %d\n", hilight_normal_queue.count);
+	}
+	for (i = 0; i < hilight_normal_queue.count; i++) {
+		printf("---------------- normal enqueue 시작 ----------------\n");
+
+		if (!hilight_is_empty(&hilight_normal_queue)) {
+			data = hilight_dequeue(&hilight_normal_queue);
+			hilight_enqueue(&hilight_send_queue, data);
+		}
+		printf("\n---------------- normal dequeue 끝 ----------------\n");
+	}
+}
+
+
+
+
 
 
 

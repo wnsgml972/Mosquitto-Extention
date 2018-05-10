@@ -217,32 +217,29 @@ int mqtt3_handle_publish(struct mosquitto_db *db, struct mosquitto *context)
 
 	_mosquitto_log_printf(NULL, MOSQ_LOG_DEBUG, "Received PUBLISH from %s (d%d, q%d, r%d, m%d, '%s', ... (%ld bytes))", context->id, dup, qos, retain, mid, topic, (long)payloadlen);
 
+	//urgency enqueue 수정
+	element data;
 
-	if (qos == 3) {		
+	data.head = NULL;  //head 포인터 초기화
+	data.normal_state = HILIGHT_OUT; //
 
-		//enqueue 수정  @@
-		element data;
+	data.payload = _mosquitto_malloc(sizeof(char)*payloadlen + 1);
+	data.topic = _mosquitto_malloc(sizeof(char)*strlen(topic) + 1);
+	strcpy(data.payload, payload);
+	strcpy(data.topic, topic);
 
-		data.head = NULL;  //head 포인터 초기화
-		
-		data.payload = _mosquitto_malloc(sizeof(char)*payloadlen + 1);
-		data.topic = _mosquitto_malloc(sizeof(char)*strlen(topic) + 1);
-		strcpy(data.payload, payload);
-		strcpy(data.topic, topic);
+	data.dup = dup;
+	data.mid = mid;
+	data.qos = qos;
+	data.retain = retain;
+	data.payloadlen = payloadlen;
 
-		data.dup = dup;
-		data.mid = mid;
-		data.qos = qos;
-		data.retain = retain;
-		data.payloadlen = payloadlen;
-
+	if (qos == 3) {
 		hilight_enqueue(&hilight_urgency_queue, data); //urgency queue 에 넣음
 	}
-
-
-	/*else { //normal queue
-		hilight_enqueue(&hilight_normal_queue, data);
-	}*/
+	else {
+		hilight_enqueue(&hilight_normal_queue, data); //normal queue 에 넣음
+	}
 
 	if(qos > 0 && qos != 3){
 		mqtt3_db_message_store_find(context, mid, &stored);
@@ -257,6 +254,7 @@ int mqtt3_handle_publish(struct mosquitto_db *db, struct mosquitto *context)
 	}else{
 		dup = 1;
 	}
+
 	//qos control
 	switch(qos){
 		case 0:
@@ -291,7 +289,7 @@ int mqtt3_handle_publish(struct mosquitto_db *db, struct mosquitto *context)
 process_bad_message:
 	_mosquitto_free(topic);
 	if(payload) _mosquitto_free(payload);
-	//qos control
+
 	switch(qos){
 		case 0:
 		case 3:

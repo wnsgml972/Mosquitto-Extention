@@ -216,10 +216,37 @@ void handle_sigusr2(int signal)
 	flag_tree_print = true;
 }
 
-void hilight_send_queue() { //수정 스레드
+void hilight_send_thread() { //수정 스레드 &&&
+
+	int i;
+	element data;
+
 	printf("------------------- HILIGHT send queue thread start! -------------------\n");
 
+	while (1) {
 
+		//printf("------------------- HILIGHT send loop -------------------\n");
+
+		if (hilight_send_queue.count != 0) {
+			printf("My Urgency Queue 갯 수 : %d\n", hilight_send_queue.count);
+		}
+		else {
+			Sleep(1);
+		}
+
+		for (i = 0; i < hilight_send_queue.count; i++) {
+			
+			if (!hilight_is_empty(&hilight_send_queue)) {
+				//data = hilight_dequeue(&hilight_send_queue);
+				data = hilight_peek(&hilight_send_queue);
+			}
+
+			if (hilight_db_message_write(&data) == MOSQ_ERR_SUCCESS) {
+				printf("write 성공!\n");				
+				Sleep(1000);
+			}
+		}
+	}
 }
 
 int main(int argc, char *argv[])
@@ -243,7 +270,8 @@ int main(int argc, char *argv[])
 #endif
 	struct mosquitto *ctxt, *ctxt_tmp;
 
-	hilight_init_queue(&hilight_urgency_queue); //hilight queue init control
+	//hilight queue init control
+	hilight_queue_init();
 
 #if defined(WIN32) || defined(__CYGWIN__)
 	if(argc == 2){
@@ -277,9 +305,6 @@ int main(int argc, char *argv[])
 	rc = mqtt3_config_parse_args(&config, argc, argv);
 	if(rc != MOSQ_ERR_SUCCESS) return rc;
 	int_db.config = &config;
-
-	// 수정 스레드
-	pthread_create(&thread_t, NULL, hilight_send_queue, NULL);
 
 	if(config.daemon){
 		mosquitto__daemonise();
@@ -399,6 +424,8 @@ int main(int argc, char *argv[])
 #endif
 
 	run = 1;
+	// 수정 스레드 스타트
+	pthread_create(&thread_t, NULL, hilight_send_thread, NULL);
 	rc = mosquitto_main_loop(&int_db, listensock, listensock_count, listener_max);
 
 	//아래 쭉 close

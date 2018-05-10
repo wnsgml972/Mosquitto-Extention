@@ -96,7 +96,7 @@ static int _subs_process(struct mosquitto_db *db, struct _mosquitto_subhier *hie
 			hier->retained = NULL;
 		}
 	}
-	while(source_id && leaf){
+	while(source_id && leaf) {
 		if(!leaf->context->id || (leaf->context->is_bridge && !strcmp(leaf->context->id, source_id))){
 			leaf = leaf->next;
 			continue;
@@ -108,20 +108,20 @@ static int _subs_process(struct mosquitto_db *db, struct _mosquitto_subhier *hie
 			continue;
 		}else if(rc2 == MOSQ_ERR_SUCCESS){
 			client_qos = leaf->qos;
-
 			if(db->config->upgrade_outgoing_qos){
 				msg_qos = client_qos;
 			}else{
-				if(qos != 3 && qos > client_qos){
+				if(qos != 3 && qos < client_qos){
 					msg_qos = client_qos;
 				}
-				else if (qos == 3) { //수정
+				else if (qos == 3) { //수정 수정 수정
 					msg_qos = 3;
 				}
 				else{
 					msg_qos = qos;
 				}
 			}
+
 			if(msg_qos && msg_qos != 3){
 				mid = _mosquitto_mid_generate(leaf->context);
 			}else{
@@ -139,16 +139,14 @@ static int _subs_process(struct mosquitto_db *db, struct _mosquitto_subhier *hie
 			}
 			//수정 연결리스트
 			if (qos == 3) {
+				//hilight_last_element_insert_subscribe(&hilight_urgency_queue, leaf->context);
 				hilight_last_element_insert_subscribe(&hilight_urgency_queue, leaf->context);
 			}
-			/*else {
+			else {
 				hilight_last_element_insert_subscribe(&hilight_normal_queue, leaf->context);
-			}*/
-			//hilight_display(hilight_urgency_queue.rear->data.head);
+			}
 
 
-
-			//printf("밖에서~~~~~~~~~~~~~~` leaf context-id %s\n", leaf->context->id);		
 			if (mqtt3_db_message_insert(db, leaf->context, mid, mosq_md_out, msg_qos, client_retain, stored) == 1) {
 				rc = 1;
 			}

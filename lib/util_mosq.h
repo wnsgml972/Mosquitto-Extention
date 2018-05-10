@@ -42,8 +42,14 @@ FILE *_mosquitto_fopen(const char *path, const char *mode, bool restrict_read);
 * hilight Code 수정
 */
 
+#define HILIGHT_OUT 0
+#define HILIGHT_NOT_OUT 1
+
 typedef struct {
 	struct mosquitto *head;  //subscribe head ptr
+	
+	int normal_state;
+
 	char *payload;
 	char *topic;
 	int8_t retain;
@@ -72,6 +78,8 @@ int hilight_is_empty(Queue *queue);
 void hilight_enqueue(Queue *queue, element data);
 void hilight_last_element_insert_subscribe(Queue *queue, struct mosquitto *context);
 element hilight_dequeue(Queue *queue);
+element hilight_peek(Queue *queue);
+void hilight_queue_init();
 
 //sub list
 void hilight_insert_node(struct mosquitto **phead, struct mosquitto *p, struct mosquitto *new_node);
@@ -80,8 +88,16 @@ void hilight_display(struct mosquitto *head);
 struct moquitto *hilight_find(struct mosquitto *head, struct mosquitto val);
 struct moquitto *hilight_before_find(struct mosquitto *head, struct mosquitto val);
 
+//생산자 코드
+void producer_enqueue();
+
+//db write
+int hilight_db_message_write(element *data);
+void hilight_send_thread();
+
 Queue hilight_urgency_queue;
 Queue hilight_normal_queue;
+Queue hilight_send_queue;
 int my_control_count; //control
 
 #ifdef REAL_WITH_TLS_PSK

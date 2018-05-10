@@ -59,6 +59,10 @@ extern int g_clients_expired;
 static void loop_handle_reads_writes(struct mosquitto_db *db, struct pollfd *pollfds);
 
 
+/*
+hilight code
+*/
+
 #ifdef WITH_WEBSOCKETS
 static void temp__expire_websockets_clients(struct mosquitto_db *db)
 {
@@ -118,8 +122,6 @@ int mosquitto_main_loop(struct mosquitto_db *db, mosq_sock_t *listensock, int li
 	char *id;
 
 	int hilight_count = 0; //수정
-	element data;
-	int my_count;
 
 #ifndef WIN32
 	sigemptyset(&sigblock);
@@ -152,7 +154,7 @@ int mosquitto_main_loop(struct mosquitto_db *db, mosq_sock_t *listensock, int li
 			mqtt3_db_sys_update(db, db->config->sys_interval, start_time);
 		}
 #endif
-	
+		
 		memset(pollfds, -1, sizeof(struct pollfd)*pollfd_max);
 
 		pollfd_index = 0;
@@ -169,26 +171,10 @@ int mosquitto_main_loop(struct mosquitto_db *db, mosq_sock_t *listensock, int li
 		my_control_count = 0; //수정
 
 		//Sleep(2000); //수정
-
 		//printf("시작  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-		if (hilight_urgency_queue.count != 0) {
-			printf("My Urgency Queue 갯 수 : %d\n", hilight_urgency_queue.count);
-		}
 
-		for (my_count = 0; my_count < hilight_urgency_queue.count; my_count++) { //my urgency
-			printf("---------------- urgency send 시작 ----------------\n");
-			if (!hilight_is_empty(&hilight_urgency_queue)) {
-				data = hilight_dequeue(&hilight_urgency_queue);
-			}
-
-			if (hilight_db_message_write(data) == MOSQ_ERR_SUCCESS) {
-				_mosquitto_free(data.topic);
-				_mosquitto_free(data.payload);
-				// 메모리 정리
-				printf("메모리 성공!\n");
-			}
-			printf("\n---------------- urgency send 끝 ----------------\n");
-		}
+		//생산자 코드 
+		producer_enqueue();
 
 		HASH_ITER(hh_sock, db->contexts_by_sock, context, ctxt_tmp){ //write hash start	
 
@@ -200,8 +186,6 @@ int mosquitto_main_loop(struct mosquitto_db *db, mosq_sock_t *listensock, int li
 			}
 			context->pollfd_index = -1;
 			
-			//printf("~~~~~~~~~~~~~~~ write hash ~~~~~~  \n\n");
-
 			if(context->sock != INVALID_SOCKET){
 #ifdef WITH_BRIDGE
 				if(context->bridge){
@@ -224,7 +208,8 @@ int mosquitto_main_loop(struct mosquitto_db *db, mosq_sock_t *listensock, int li
 						|| context->bridge
 						|| now - context->last_msg_in < (time_t)(context->keepalive)*3/2){
 
-					if(mqtt3_db_message_write(db, context) == MOSQ_ERR_SUCCESS){ //write control
+//					if(mqtt3_db_message_write(db, context) == MOSQ_ERR_SUCCESS){ //write control
+					if(1){
 						pollfds[pollfd_index].fd = context->sock;
 						pollfds[pollfd_index].events = POLLIN;
 						pollfds[pollfd_index].revents = 0;
